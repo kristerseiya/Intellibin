@@ -63,9 +63,9 @@ def get_label(dir):
     return -1
 
 def id_label(label):
-    classes = ['paper', 'glass', 'metal', 'plastic bag', 'plastic bottle',
-               'other plastic', 'disposable cup', 'food / snack wraps',
-               'food contamination','other']
+    classes = ['R, paper', 'R, glass', 'R, metal', 'N, plastic bag', 'R, plastic bottle',
+               'R, other plastic', 'N, disposable cup', 'N, food / snack wraps',
+               'N, food contamination','N, other']
     return classes[label]
 
 def isrecyclable(label):
