@@ -5,9 +5,12 @@
 #include <esp_camera.h>
 #include <esp_log.h>
 
-#define WIFI_SSID   "Apt Big 10"
-#define WIFI_PSWD   "B01l3rUp!"
-#define SERVER_ADDR "http://192.168.1.122:8889/predict"
+// #define WIFI_SSID   "Apt Big 10"
+// #define WIFI_PSWD   "B01l3rUp!"
+#define WIFI_SSID   "The Twelve"
+#define WIFI_PSWD   "upxbrmcamkz4d"
+// #define SERVER_ADDR "http://192.168.1.122:8889/predict"
+#define SERVER_ADDR "http://172.20.10.2:8889/predict"
 #define PIN_SCL     GPIO_NUM_14
 #define PIN_SDA     GPIO_NUM_15
 #define PIN_UART_TX GPIO_NUM_12

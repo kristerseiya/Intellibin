@@ -69,41 +69,6 @@
 
   **************************************************************************/
 
-// #define F_CPU 16000000UL
-
-// #include <avr/io.h>
-// #include <util/delay.h>
-
-// LCD interface (should agree with the diagram above)
-// #define lcd_D7_port     PORTD                   // lcd D7 connection
-// #define lcd_D7_bit      PORTD7
-// #define lcd_D7_ddr      DDRD
-// #define lcd_D7_pin      PIND                    // busy flag
-//
-// #define lcd_D6_port     PORTD                   // lcd D6 connection
-// #define lcd_D6_bit      PORTD6
-// #define lcd_D6_ddr      DDRD
-//
-// #define lcd_D5_port     PORTD                   // lcd D5 connection
-// #define lcd_D5_bit      PORTD5
-// #define lcd_D5_ddr      DDRD
-//
-// #define lcd_D4_port     PORTD                   // lcd D4 connection
-// #define lcd_D4_bit      PORTD4
-// #define lcd_D4_ddr      DDRD
-//
-// #define lcd_E_port      PORTB                   // lcd Enable pin
-// #define lcd_E_bit       PORTB1
-// #define lcd_E_ddr       DDRB
-//
-// #define lcd_RS_port     PORTB                   // lcd Register Select pin
-// #define lcd_RS_bit      PORTB0
-// #define lcd_RS_ddr      DDRB
-//
-// #define lcd_RW_port     PORTB                   // lcd Read/Write pin
-// #define lcd_RW_bit      PORTB2
-// #define lcd_RW_ddr      DDRB
-
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -112,248 +77,171 @@
 
 #include "project.h"
 
-#define D7_PIN  GPIO_NUM_14
-#define D6_PIN  GPIO_NUM_32
-#define D5_PIN  GPIO_NUM_15
-#define D4_PIN  GPIO_NUM_33
-#define E_PIN   GPIO_NUM_27
-#define RW_PIN  GPIO_NUM_12
-#define RS_PIN  GPIO_NUM_13
-
 // LCD module information
-#define lcd_LineOne     0x00                    // start of line 1
-#define lcd_LineTwo     0x40                    // start of line 2
+// #define lcd_LineOne     0x00                    // start of line 1
+// #define lcd_LineTwo     0x40                    // start of line 2
 //#define   lcd_LineThree   0x14                  // start of line 3 (20x4)
 //#define   lcd_lineFour    0x54                  // start of line 4 (20x4)
 //#define   lcd_LineThree   0x10                  // start of line 3 (16x4)
 //#define   lcd_lineFour    0x50                  // start of line 4 (16x4)
 
 // LCD instructions
-#define lcd_Clear           0b00000001          // replace all characters with ASCII 'space'
-#define lcd_Home            0b00000010          // return cursor to first position on first line
-#define lcd_EntryMode       0b00000110          // shift cursor from left to right on read/write
-#define lcd_DisplayOff      0b00001000          // turn display off
-#define lcd_DisplayOn       0b00001111          // display on, cursor off, don't blink character
-// #define lcd_FunctionReset   0b00110000          // reset the LCD
-#define lcd_FunctionReset   0b00101000          // reset the LCD
-// #define lcd_FunctionSet4bit 0b00101000          // 4-bit data, 2-line display, 5 x 7 font
-#define lcd_FunctionSet4bit 0b00101100          // 4-bit data, 2-line display, 5 x 7 font
+// #define lcd_Clear           0b00000001          // replace all characters with ASCII 'space'
+// #define lcd_Home            0b00000010          // return cursor to first position on first line
+// #define lcd_EntryMode       0b00000110          // shift cursor from left to right on read/write
+// #define lcd_DisplayOff      0b00001000          // turn display off
+// #define lcd_DisplayOn       0b00001111          // display on, cursor off, don't blink character
+// // #define lcd_FunctionReset   0b00110000          // reset the LCD
+// #define lcd_FunctionReset   0b00101000          // reset the LCD
+// // #define lcd_FunctionSet4bit 0b00101000          // 4-bit data, 2-line display, 5 x 7 font
+// #define lcd_FunctionSet4bit 0b00101100          // 4-bit data, 2-line display, 5 x 7 font
 //#define lcd_FunctionSet4bit 0b00101000
 //#define lcd_SetCursor       0b0000110100          // set cursor position
 
 // Program ID
-uint8_t recyclable_string[]   = "recyclable";
-uint8_t capacity_string[]  = "100% full";
-uint8_t imagproc[]     = "Image Processing";
-uint8_t compimag[]     = "Computational Imaging";
-uint8_t mes1[] = "ok";
-uint8_t mes2[] = "what time?";
+uint8_t empty_line[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
 // Function Prototypes
-void lcd_write_4(uint8_t);
-void lcd_write_instruction_4f(uint8_t);
-void lcd_write_character_4f(uint8_t);
-void lcd_write_string_4f(uint8_t *);
-void lcd_init_4f(void);
-void lcd_check_BF_4(void);
+static void lcd_write_4bit(uint8_t);
+static void lcd_print_char(uint8_t);
+static void lcd_check_BF_4(void);
 
-/******************************* Main Program Code *************************/
 void init_lcd(void)
 {
-// configure the microprocessor pins for the data lines
-    // lcd_D7_ddr |= (1<<lcd_D7_bit);                  // 4 data lines - output
-    // lcd_D6_ddr |= (1<<lcd_D6_bit);
-    // lcd_D5_ddr |= (1<<lcd_D5_bit);
-    // lcd_D4_ddr |= (1<<lcd_D4_bit);
-    gpio_pad_select_gpio(D7_PIN);
-    gpio_pad_select_gpio(D6_PIN);
-    gpio_pad_select_gpio(D5_PIN);
-    gpio_pad_select_gpio(D4_PIN);
-    gpio_pad_select_gpio(E_PIN);
-    gpio_pad_select_gpio(RS_PIN);
-    gpio_pad_select_gpio(RW_PIN);
+    gpio_pad_select_gpio(PIN_LCD_D7);
+    gpio_pad_select_gpio(PIN_LCD_D6);
+    gpio_pad_select_gpio(PIN_LCD_D5);
+    gpio_pad_select_gpio(PIN_LCD_D4);
+    gpio_pad_select_gpio(PIN_LCD_E);
+    gpio_pad_select_gpio(PIN_LCD_RS);
+    gpio_pad_select_gpio(PIN_LCD_RW);
 
-    gpio_set_direction(D7_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(D6_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(D5_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(D4_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(E_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(RS_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(RW_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_LCD_D7, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_LCD_D6, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_LCD_D5, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_LCD_D4, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_LCD_E, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_LCD_RS, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_LCD_RW, GPIO_MODE_OUTPUT);
 
-    // gpio_set_pull_mode(D7_PIN, GPIO_PULLDOWN_ONLY);
-    // gpio_set_pull_mode(D6_PIN, GPIO_PULLDOWN_ONLY);
-    // gpio_set_pull_mode(D5_PIN, GPIO_PULLDOWN_ONLY);
-    // gpio_set_pull_mode(D4_PIN, GPIO_PULLDOWN_ONLY);
-    // gpio_set_pull_mode(E_PIN, GPIO_PULLDOWN_ONLY);
-    // gpio_set_pull_mode(RS_PIN, GPIO_PULLDOWN_ONLY);
-    // gpio_set_pull_mode(RW_PIN, GPIO_PULLDOWN_ONLY);
-
-//     gpio_set_level(D7_PIN, 1);
-//     gpio_set_level(D6_PIN, 1);
-//     gpio_set_level(D5_PIN, 1);
-//     gpio_set_level(D4_PIN, 1);
-
-    lcd_init_4f();
-    // lcd_write_string_4f(mes1);
-    //
-    // lcd_write_instruction_4f(0b11000000);
-    // vTaskDelay(10 / portTICK_PERIOD_MS);
-    //
-    // lcd_write_string_4f(mes2);
-// endless loop
-    while(1) {
-      vTaskDelay(10);
-    }
-    // return 0;
-}
-/******************************* End of Main Program Code ******************/
-
-/*============================== 4-bit LCD Functions ======================*/
-/*
-  Name:     lcd_init_4f
-  Purpose:  initialize the LCD module for a 4-bit data interface
-  Entry:    equates (LCD instructions) set up for the desired operation
-  Exit:     no parameters
-  Notes:    uses the busy flag instead of time delays when possible
-*/
-void lcd_init_4f(void)
-{
     vTaskDelay(500 / portTICK_PERIOD_MS);
-    gpio_set_level(RS_PIN, 0);
-    gpio_set_level(E_PIN, 0);
-    gpio_set_level(RW_PIN, 0);
+    gpio_set_level(PIN_LCD_RS, 0);
+    gpio_set_level(PIN_LCD_E, 0);
+    gpio_set_level(PIN_LCD_RW, 0);
 
-    lcd_write_4(0b00110000);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
-
-    lcd_write_4(0b00110000);
+    lcd_write_4bit(0b00110000);
     vTaskDelay(10 / portTICK_PERIOD_MS);
 
-    lcd_write_4(0b00110000);
+    lcd_write_4bit(0b00110000);
     vTaskDelay(10 / portTICK_PERIOD_MS);
 
-    lcd_write_4(0b00110000);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
-    lcd_write_instruction_4f(0b00110010);
+    lcd_write_4bit(0b00110000);
     vTaskDelay(10 / portTICK_PERIOD_MS);
 
-    lcd_write_instruction_4f(0b00001000);
+    lcd_write_4bit(0b00110000);
     vTaskDelay(10 / portTICK_PERIOD_MS);
-    lcd_write_instruction_4f(0b00000001);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
-    lcd_write_instruction_4f(0b00000110);
+    lcd_write_instruction(0b00110010);
     vTaskDelay(10 / portTICK_PERIOD_MS);
 
-    lcd_write_instruction_4f(0b00001111);
+    lcd_write_instruction(0b00001000);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    lcd_write_instruction(0b00000001);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    lcd_write_instruction(0b00000110);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+
+    lcd_write_instruction(0b00001111);
     vTaskDelay(10 / portTICK_PERIOD_MS);
 }
 
-/*...........................................................................
-  Name:     lcd_write_string_4f
-; Purpose:  display a string of characters on the LCD
-  Entry:    (theString) is the string to be displayed
-  Exit:     no parameters
-  Notes:    uses the busy flag instead of time delays
-*/
-void lcd_write_string_4f(uint8_t theString[])
+void lcd_print(uint8_t theString[])
 {
-    gpio_set_level(RW_PIN, 0);
-    gpio_set_level(RS_PIN, 1);
-    gpio_set_level(E_PIN, 0);
+    gpio_set_level(PIN_LCD_RW, 0);
+    gpio_set_level(PIN_LCD_RS, 1);
+    gpio_set_level(PIN_LCD_E, 0);
     volatile int i = 0;                             // character counter*/
     while (theString[i] != 0)
     {
         // lcd_check_BF_4();                           // make sure LCD controller is ready
-        lcd_write_character_4f(theString[i]);
+        lcd_print_char(theString[i]);
         i++;
-        //vTaskDelay(80 / portTICK_PERIOD_MS);
     }
     // gpio_set_level(RW_PIN, 1);
 }
 
-/*...........................................................................
-  Name:     lcd_write_character_4f
-  Purpose:  send a byte of information to the LCD data register
-  Entry:    (theData) is the information to be sent to the data register
-  Exit:     no parameters
-  Notes:    configures RW (busy flag is implemented)
-*/
-void lcd_write_character_4f(uint8_t theData)
+static void lcd_print_char(uint8_t theData)
 {
-    gpio_set_level(RW_PIN, 0);
-    gpio_set_level(RS_PIN, 1);
-    gpio_set_level(E_PIN, 0);
+    gpio_set_level(PIN_LCD_RW, 0);
+    gpio_set_level(PIN_LCD_RS, 1);
+    gpio_set_level(PIN_LCD_E, 0);
 
-    lcd_write_4(theData);                           // write the upper 4-bits of the data
-    lcd_write_4(theData << 4);                      // write the lower 4-bits of the data
+    lcd_write_4bit(theData);                           // write the upper 4-bits of the data
+    lcd_write_4bit(theData << 4);                      // write the lower 4-bits of the data
 }
 
-/*...........................................................................
-  Name:     lcd_write_instruction_4f
-  Purpose:  send a byte of information to the LCD instruction register
-  Entry:    (theInstruction) is the information to be sent to the instruction register
-  Exit:     no parameters
-  Notes:    configures RW (busy flag is implemented)
-*/
-void lcd_write_instruction_4f(uint8_t theInstruction)
+void lcd_write_instruction(uint8_t theInstruction)
 {
-    gpio_set_level(RW_PIN, 0);
-    gpio_set_level(RS_PIN, 0);
-    gpio_set_level(E_PIN, 0);
+    gpio_set_level(PIN_LCD_RW, 0);
+    gpio_set_level(PIN_LCD_RS, 0);
+    gpio_set_level(PIN_LCD_E, 0);
 
-    lcd_write_4(theInstruction);                    // write the upper 4-bits of the data
-    lcd_write_4(theInstruction << 4);               // write the lower 4-bits of the data
+    lcd_write_4bit(theInstruction);                    // write the upper 4-bits of the data
+    lcd_write_4bit(theInstruction << 4);               // write the lower 4-bits of the data
     // gpio_set_level(RW_PIN, 1);
 }
 
-/*...........................................................................
-  Name:     lcd_write_4
-  Purpose:  send a nibble (4-bits) of information to the LCD module
-  Entry:    (theByte) contains a byte of data with the desired 4-bits in the upper nibble
-            RS is configured for the desired LCD register
-            E is low
-            RW is low
-  Exit:     no parameters
-  Notes:    use either time delays or the busy flag
-*/
-void lcd_write_4(uint8_t theByte)
+static void lcd_write_4bit(uint8_t theByte)
 {
 
-    gpio_set_level(D7_PIN, 0);
+    gpio_set_level(PIN_LCD_D7, 0);
     if (theByte & 1<<7) {
-      gpio_set_level(D7_PIN, 1);
+      gpio_set_level(PIN_LCD_D7, 1);
     }
-    gpio_set_level(D6_PIN, 0);
+    gpio_set_level(PIN_LCD_D6, 0);
     if (theByte & 1<<6) {
-      gpio_set_level(D6_PIN, 1);
+      gpio_set_level(PIN_LCD_D6, 1);
     }
-    gpio_set_level(D5_PIN, 0);
+    gpio_set_level(PIN_LCD_D5, 0);
     if (theByte & 1<<5) {
-      gpio_set_level(D5_PIN, 1);
+      gpio_set_level(PIN_LCD_D5, 1);
     }
-    gpio_set_level(D4_PIN, 0);
+    gpio_set_level(PIN_LCD_D4, 0);
     if (theByte & 1<<4) {
-      gpio_set_level(D4_PIN, 1);
+      gpio_set_level(PIN_LCD_D4, 1);
     }
 
     // write the data
-    gpio_set_level(E_PIN, 1);
+    gpio_set_level(PIN_LCD_E, 1);
     vTaskDelay(10 / portTICK_PERIOD_MS);
-    gpio_set_level(E_PIN, 0);
+    gpio_set_level(PIN_LCD_E, 0);
     vTaskDelay(10 / portTICK_PERIOD_MS);
 }
 
-/*...........................................................................
-  Name:     lcd_check_BF_4
-  Purpose:  check busy flag, wait until LCD is ready
-  Entry:    no parameters
-  Exit:     no parameters
-  Notes:    main program will hang if LCD module is defective or missing
-            data is read while 'E' is high
-            both nibbles must be read even though desired information is only in the high nibble
-*/
-void lcd_check_BF_4(void)
+void lcd_clear(void) {
+    lcd_write_instruction(0b00000001);
+}
+
+void lcd_clear_line1(void) {
+    lcd_write_instruction(0b10000000);
+    lcd_print(empty_line);
+    lcd_write_instruction(0b10000000);
+}
+
+void lcd_clear_line2(void) {
+    lcd_write_instruction(0b11000000);
+    lcd_print(empty_line);
+    lcd_write_instruction(0b11000000);
+}
+
+void lcd_go_to_line1(void) {
+    lcd_write_instruction(0b10000000);
+}
+
+void lcd_go_to_line2(void) {
+    lcd_write_instruction(0b11000000);
+}
+
+static void lcd_check_BF_4(void)
 {
   vTaskDelay(100 / portTICK_PERIOD_MS);
 //     uint8_t busy_flag_copy;                         // busy flag 'mirror'

@@ -29,7 +29,7 @@ static void mcpwm_example_gpio_initialize()
 {
     printf("initializing mcpwm servo control gpio......\n");
     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, 21); //Set GPIO 21 as PWM0A, to which servo is connected
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, 27);
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, 26);
 }
 
 /**
@@ -53,21 +53,13 @@ static uint32_t servo_per_degree_init(uint32_t degree_of_rotation)
 void mcpwm_servo_control(char a)
 {
     //2. initial mcpwm configuration
-        printf("Configuring Initial Parameters of mcpwm......\n");
-        mcpwm_config_t pwm_config;
-        pwm_config.frequency = 50; //frequency = 50Hz, i.e. for every servo motor time period should be 20ms
-        pwm_config.cmpr_a = 0;     //duty cycle of PWMxA = 0
-        pwm_config.cmpr_b = 0;     //duty cycle of PWMxb = 0
-        pwm_config.counter_mode = MCPWM_UP_COUNTER;
-        pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-        mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config); //Configure PWM0A & PWM0B with above setting
-        
+         //Configure PWM0A & PWM0B with above setting
+
     //1. mcpwm gpio initialization
-    mcpwm_example_gpio_initialize();
 
         uint32_t angle;
 
-        if(a == "R") {
+        if(a == 'R') {
             angle = servo_per_degree_init(0);
             mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
             vTaskDelay(200);
@@ -130,11 +122,13 @@ static void uart_event_task(void *pvParameters)
                     uart_read_bytes(EX_UART_NUM, dtmp, event.size, portMAX_DELAY);
                     ESP_LOGI(TAG, "[DATA EVT]:");
                     uart_write_bytes(EX_UART_NUM, (const char*) dtmp, event.size);
-                    lcd_write_instruction_4f(0b00000001);
+                    lcd_write_instruction(0b00000001);
+                    //lcd_clear();
                     vTaskDelay(5 / portTICK_PERIOD_MS);
-                    lcd_write_instruction_4f(0b10000000);
+                    lcd_write_instruction(0b10000000);
+                    // lcd_go_to_line1();
                     vTaskDelay(5 / portTICK_PERIOD_MS);
-                    lcd_write_string_4f((uint8_t*)dtmp);
+                    lcd_print((uint8_t*)dtmp);
                     mcpwm_servo_control(dtmp[0]);
                     break;
                 //Event of HW FIFO overflow detected
@@ -227,8 +221,19 @@ void app_main(void)
     //Reset the pattern queue length to record at most 20 pattern positions.
     uart_pattern_queue_reset(EX_UART_NUM, 20);
 
+    init_lcd();
+    
+    mcpwm_example_gpio_initialize();
+
+    printf("Configuring Initial Parameters of mcpwm......\n");
+    mcpwm_config_t pwm_config;
+    pwm_config.frequency = 50; //frequency = 50Hz, i.e. for every servo motor time period should be 20ms
+    pwm_config.cmpr_a = 0;     //duty cycle of PWMxA = 0
+    pwm_config.cmpr_b = 0;     //duty cycle of PWMxb = 0
+    pwm_config.counter_mode = MCPWM_UP_COUNTER;
+    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
+    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+
     //Create a task to handler UART event from ISR
     xTaskCreate(uart_event_task, "uart_event_task", 2048, NULL, 12, NULL);
-
-    init_lcd();
 }
