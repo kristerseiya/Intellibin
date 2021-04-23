@@ -2,10 +2,11 @@
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
-import glob
+from glob import glob
 from PIL import Image
 import os
 import numpy as np
+from tqdm import tqdm
 
 class AddNoise():
     def __init__(self, max=15):
@@ -38,40 +39,53 @@ def get_transform(mode):
 
     return transform
 
-def get_label(dir):
-    if dir.startswith('cardboard') or dir.startswith('paper') or dir.startswith('other_paper'):
-        return 0
-    elif dir.startswith('glass'):
-        return 1
-    elif dir.startswith('metal'):
-        return 2
-    elif dir.startswith('plastic_bag'):
-        return 3
-    elif dir.startswith('plastic_bottle'):
-        return 4
-    elif dir.startswith('other_plastic') or dir.startswith('plastic_box'):
-        return 5
-    elif dir.startswith('disposable_cup'):
-        return 6
-    elif dir.startswith('snack_wrapper') or dir.startswith('food_wrap'):
-        return 7
-    elif dir.startswith('dirty_plate') or dir.startswith('food'):
-        return 8
-    elif dir.startswith('battery') or dir.startswith('electronic') or dir.startswith('napkin') or dir.startswith('other') \
-            or dir.startswith('pizza_box') or dir.startswith('styrofoam'):
-        return 9
-    return -1
+def get_label(obj_type):
+    if obj_type.startswith('cardboard'):
+        return 0, True
+    elif obj_type.startswith('paper_bag'):
+        return 0, True
+    elif obj_type.startswith('paper_box'):
+        return 1, True
+    elif obj_type.startswith('paper'):
+        return 1, True
+    elif obj_type.startswith('glass'):
+        return 2, True
+    elif obj_type.startswith('metal_can'):
+        return 3, True
+    elif obj_type.startswith('metal'):
+        return 4, True
+    elif obj_type.startswith('plastic_bottle'):
+        return 5, True
+    elif obj_type.startswith('milk_jug'):
+        return 5, True
+    elif obj_type.startswith('plastic_box'):
+        return 6, True
+    elif obj_type.startswith('other_plastic'):
+        return 6, True
+    elif obj_type.startswith('plastic_bag'):
+        return 7, False
+    elif obj_type.startswith('disposable_cup'):
+        return 8, False
+    elif obj_type.startswith('snack_wrapper') or obj_type.startswith('food_wrap') or \
+        obj_type.startswith('nontrans_plastic_bag_me'):
+        return 9, False
+    elif obj_type.startswith('dirty_plate') or obj_type.startswith('food'):
+        return 10, False
+    elif obj_type.startswith('pizza_box') or obj_type.startswith('styrofoam'):
+        return 11, False
+    elif obj_type.startswith('battery') or obj_type.startswith('electronic') or \
+        obj_type.startswith('other'):
+        return 12, False
+    return 12, False
 
 def id_label(label):
-    classes = ['R, paper', 'R, glass', 'R, metal', 'N, plastic bag', 'R, plastic bottle',
-               'R, other plastic', 'N, disposable cup', 'N, food / snack wraps',
-               'N, food contamination','N, other']
+    classes = ['paper 1', 'paper 2', 'glass', 'metal can', 'metal', 'plastic bottle',
+               'other plastic', 'plastic bag', 'disposable cup', 'plastic bag',
+               'food contamination', 'other1', 'other2']
     return classes[label]
 
 def isrecyclable(label):
-    if label in [0, 1, 2, 4, 5]:
-        return True
-    return False
+    return label < 7
 
 class WasteNetSubset(Dataset):
     def __init__(self, dataset, indices, mode='none'):
@@ -80,23 +94,35 @@ class WasteNetSubset(Dataset):
         self.transform = get_transform(mode)
 
     def __getitem__(self, idx):
-        imgs, labels = self.dataset[self.indices[idx]]
+        imgs = self.dataset.images[self.indices[idx]]
+        labels = self.dataset.labels[self.indices[idx]]
         return self.transform(imgs), labels
 
     def __len__(self):
         return len(self.indices)
 
+    def set_mode(self, mode):
+        self.transform = get_transform(mode)
+
     def print_stats(self):
         (unique, counts) = np.unique(self.dataset.labels[self.indices], return_counts=True)
+        n_recyc = 0
+        n_nonrecyc = 0
         for u, c in zip(unique, counts):
             print('{:s}: {:d}'.format(id_label(u), c))
+            if isrecyclable(u):
+                n_recyc += c
+            else:
+                n_nonrecyc += c
+        print('Recyclable: {:d}'.format(n_recyc))
+        print('Non-recyclable: {:d}'.format(n_nonrecyc))
 
 class WasteNetDataset(Dataset):
-    def __init__(self, root_dirs, mode='none', store='ram', exclude='google'):
+    def __init__(self, root_dirs, mode='none', store='RAM', exclude='google'):
         super().__init__()
         self.images = list()
-        self.labels = list()
-        self.store = store
+        self.obj_types = list()
+        self.store = store.upper()
 
         if type(root_dirs) != list:
             root_dirs = list(root_dirs)
@@ -104,28 +130,42 @@ class WasteNetDataset(Dataset):
         if type(exclude) != list:
             exclude = list(exclude)
 
+        file_paths = list()
         for root_dir in root_dirs:
-            for file_path in glob.glob(os.path.join(root_dir, '*/**.png')):
-
+            subdirs = glob(os.path.join(root_dir, '*'))
+            for subdir in subdirs:
                 ignore = False
-                dir = file_path.split('/')[-2]
                 for exc in exclude:
-                    if dir.endswith(exc):
+                    if subdir.endswith(exc)
                         ignore = True
-
+                        break
                 if not ignore:
-                    label = get_label(dir)
-                    if label != -1:
-                        if store == 'ram':
-                            fptr = Image.open(file_path).convert('RGB')
-                            file_copy = fptr.copy()
-                            fptr.close()
-                            self.images.append(file_copy)
-                        elif store == 'disk':
-                            self.images.append(file_path)
-                        self.labels.append(label)
+                    for ext in ['png', 'jpg']:
+                        file_paths += glob(os.path.join(subdir, '*.'+ext))
+        n_files = len(file_paths)
+
+        pbar = tqdm(total=n_files, position=0, leave=False, file=sys.stdout)
+
+        for file_path in file_paths:
+            self.obj_types.append(file_path.split('/')[-2])
+            if self.store == 'RAM':
+                fptr = Image.open(file_path).convert('RGB')
+                file_copy = fptr.copy()
+                fptr.close()
+                self.images.append(file_copy)
+            elif self.store == 'DISK':
+                self.images.append(file_path)
+            pbar.update(1)
+
+        tqdm.close(pbar)
 
         self.transform = get_transform(mode)
+
+    def create_labels(self):
+        self.lables = list()
+        for obj_type in self.obj_types:
+            a, b = get_label(obj_type)
+            self.labels.append(a)
 
     def set_mode(self, mode):
         self.transform = get_transform(mode)
@@ -134,26 +174,41 @@ class WasteNetDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        if self.store == 'ram':
-            return self.transform(self.images[idx]), self.labels[idx]
-        return self.transform(Image.open(self.images[idx]).convert('RGB')), self.labels[idx]
+        if self.store == 'DISK':
+            return self.transform(Image.open(self.images[idx]).convert('RGB')), self.labels[idx]
+        return self.transform(self.images[idx]), self.labels[idx]
 
     def print_stats(self):
         (unique, counts) = np.unique(self.labels, return_counts=True)
         for u, c in zip(unique, counts):
             print('{:s}: {:d}'.format(id_label(u), c))
 
-    def split(self, train_r, val_r, test_r):
-        ratios = np.array([train_r, val_r, test_r]) / (train_r + val_r + test_r)
+    def print_stats(self):
+        (unique, counts) = np.unique(self.labels[self.indices], return_counts=True)
+        n_recyc = 0
+        n_nonrecyc = 0
+        for u, c in zip(unique, counts):
+            print('{:s}: {:d}'.format(id_label(u), c))
+            if isrecyclable(u):
+                n_recyc += c
+            else:
+                n_nonrecyc += c
+        print('Recyclable: {:d}'.format(n_recyc))
+        print('Non-recyclable: {:d}'.format(n_nonrecyc))
+
+    def split(self, *r):
+        ratios = np.array(r)
+        ratios = ratios / ratios.sum()
         total_num = len(self.labels)
-        indices = list(range(total_num))
+        indices = np.arange(total_num)
         np.random.shuffle(indices)
 
-        split1 = int(np.floor(total_num * ratios[0]))
-        split2 = int(np.floor(total_num * ratios[1]))
+        subsets = list()
+        start = 0
+        for r in ratios[:-1]:
+            split = int(total_num * r)
+            subsets.append(WasteNetSubset(self, indices[start:start+split]))
+            start = start + split
+        subsets.append(WasteNetSubset(self, indices[start:]))
 
-        train_set = WasteNetSubset(self, indices[:split1], 'train')
-        val_set = WasteNetSubset(self, indices[split1:split1+split2], 'val')
-        test_set = WasteNetSubset(self, indices[split1+split2:], 'test')
-
-        return train_set, val_set, test_set
+        return subsets

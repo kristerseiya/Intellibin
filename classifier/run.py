@@ -12,9 +12,10 @@ import sys
 
 def train_single_epoch(model, optimizer, train_data, scheduler=None, loss_weight=None):
 
-    dataset_size = len(train_data.dataset)
-
     total_loss = 0.
+    n_correct1 = 0.
+    n_correct2 = 0.
+    count = 0.
     model.train()
 
     pbar = tqdm(total=len(train_data), position=0, leave=False, file=sys.stdout)
@@ -27,22 +28,29 @@ def train_single_epoch(model, optimizer, train_data, scheduler=None, loss_weight
         loss = F.cross_entropy(output, labels, weight=loss_weight)
         loss.backward()
         optimizer.step()
-        total_loss += loss.item() * labels.size(0)
         if scheduler != None:
             scheduler.step()
+        total_loss += loss.item() * labels.size(0)
+        predict = torch.argmax(output, -1)
+        n_correct1 += (predict == labels).sum().item()
+        n_correct2 += (~(data.isrecyclable(predict) ^ data.isrecyclable(labels))).sum().item()
         pbar.update(1)
 
     tqdm.close(pbar)
 
-    return total_loss / float(dataset_size)
+    avg_loss = total_loss / float(count)
+    accuracy1 = n_correct1 / float(count)
+    accuracy2 = n_correct2 / float(count)
+
+    return avg_loss, accuracy1, accuracy2
 
 @torch.no_grad()
 def validate(model, test_data, loss_weight=None):
 
-    dataset_size = len(test_data.dataset)
-
     total_loss = 0.
-    n_correct = 0.
+    n_correct1 = 0.
+    n_correct2 = 0.
+    count = 0.
     model.eval()
 
     pbar = tqdm(total=len(test_data), position=0, leave=False, file=sys.stdout)
@@ -53,15 +61,18 @@ def validate(model, test_data, loss_weight=None):
         output = model(images)
         total_loss += F.cross_entropy(output, labels, weight=loss_weight).item() * labels.size(0)
         predict = torch.argmax(output, -1)
-        n_correct += (predict == labels).sum().item()
+        n_correct1 += (predict == labels).sum().item()
+        n_correct2 += (~(data.isrecyclable(predict) ^ data.isrecyclable(labels))).sum().item()
+        count += labels.size(0)
         pbar.update(1)
 
     tqdm.close(pbar)
 
-    avg_loss = total_loss / float(dataset_size)
-    accuracy = n_correct / float(dataset_size)
+    avg_loss = total_loss / float(count)
+    accuracy1 = n_correct1 / float(count)
+    accuracy2 = n_correct1 / float(count)
 
-    return avg_loss, accuracy
+    return avg_loss, accuracy1, accuracy2
 
 @torch.no_grad()
 def get_confusion_matrix(model, test_data, num_class=10):
@@ -84,9 +95,7 @@ def plot_confusion_matrix(confusion_matrix):
     num_class = confusion_matrix.shape[0]
     df_cm = pd.DataFrame(confusion_matrix, index=data.id_label(slice(num_class)),
                                 columns=data.id_label(slice(num_class)))
-    # plt.figure(figsize=(10,7))
-    # sn.set(font_scale=1.4) # for label size
-    sn.heatmap(df_cm, annot=True, fmt='g') # font size
+    sn.heatmap(df_cm, annot=True, fmt='g')
     plt.show()
 
 def train(model, optimizer, max_epoch, train_data,
@@ -100,15 +109,17 @@ def train(model, optimizer, max_epoch, train_data,
     if lr_step == 'batch':
         _scheduler = scheduler
 
-    log = np.zeros([max_epoch, 3], dtype=np.float)
+    log = np.zeros([max_epoch, 6], dtype=np.float)
 
     for e in range(max_epoch):
 
         print('Epoch #{:d}'.format(e+1))
 
-        log[e, 0] = train_single_epoch(model, optimizer, train_data, _scheduler, loss_weight)
+        log[e, 0], log[e, 1], log[e, 2] = train_single_epoch(model, optimizer, train_data, _scheduler, loss_weight)
 
         print('Train Loss: {:.3f}'.format(log[e, 0]))
+        print('Train Obj Accs: {:.3f}'.format(log[e, 1]))
+        print('Train Bin Accs: {:.3f}'.format(log[e, 2]))
 
         if lr_step == 'epoch' and scheduler is not None:
 
@@ -116,13 +127,14 @@ def train(model, optimizer, max_epoch, train_data,
 
         if validation is not None:
 
-            log[e, 1], log[e, 2] = validate(model, validation, loss_weight)
+            log[e, 3], log[e, 4], log[e, 5] = validate(model, validation, loss_weight)
 
-            print('Val Loss: {:.3f}'.format(log[e, 1]))
-            print('Val Accs: {:.3f}'.format(log[e, 2]))
+            print('Val Loss: {:.3f}'.format(log[e, 3]))
+            print('Val Obj Accs: {:.3f}'.format(log[e, 4]))
+            print('Val Bin Accs: {:.3f}'.format(log[e, 5]))
 
-            if checkpoint_dir != None and (best_loss > log[e, 1]):
-                best_loss = log[e, 1]
+            if checkpoint_dir != None and (best_loss > log[e, 3]):
+                best_loss = log[e, 3]
                 if not os.path.exists(checkpoint_dir):
                     os.makedirs(checkpoint_dir)
                 checkpoint_path = os.path.join(checkpoint_dir, 'checkpoint'+str(e+1)+'.pth')
@@ -148,25 +160,10 @@ def inference(model, image):
     predict = torch.argmax(output, -1).item()
 
     return predict
-#
-# def run(model, image):
-#
-#     image = config.IMAGE_TRANFORM_INFERENCE(image)
-#     image = image.unsqueeze(0)
-#     image = image.to(model.device)
-#
-#     with torch.no_grad():
-#         model.eval()
-#         output = model(image)
-#         predict = torch.argmax(output, -1).item()
-#
-#     return predict
+
 
 if __name__ == '__main__':
 
-
-# if __name__ == '__main__':
-#
     import argparse
     import data
     from torch.utils.data import DataLoader
