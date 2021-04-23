@@ -34,6 +34,7 @@ def train_single_epoch(model, optimizer, train_data, scheduler=None, loss_weight
         predict = torch.argmax(output, -1)
         n_correct1 += (predict == labels).sum().item()
         n_correct2 += (~(data.isrecyclable(predict) ^ data.isrecyclable(labels))).sum().item()
+        count += labels.size(0)
         pbar.update(1)
 
     tqdm.close(pbar)
