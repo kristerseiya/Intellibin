@@ -171,6 +171,22 @@ def plot_confusion_matrix(confusion_matrix, labels=None):
     sn.heatmap(df_cm, annot=True, fmt='g')
     plt.show()
 
+def compute_score(confusion_matrix):
+    n_class = confusion_matrix.shape[0]
+    precision = np.zeros([n_class, ])
+    recall = np.zeros([n_class, ])
+
+    for i in range(n_class):
+        tp = confusion_matrix[i, i]
+        fp = confusion_matrix[:, i].sum() - tp
+        fn = confusion_matrix[i, :].sum() - tp
+        precision[i] = tp / (tp + fp)
+        recall[i] = tp / (tp + fn)
+
+    f1score = 2 * (precision * recall) / (precision + recall)
+
+    return precision, recall, f1score
+
 if __name__ == '__main__':
 
     import argparse
