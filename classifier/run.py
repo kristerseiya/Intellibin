@@ -74,30 +74,6 @@ def validate(model, test_data, loss_weight=None):
 
     return avg_loss, accuracy1, accuracy2
 
-@torch.no_grad()
-def get_confusion_matrix(model, test_data, num_class=10):
-
-    cf_mtx = np.zeros([num_class, num_class])
-
-    model.eval()
-    for images, labels in test_data:
-        images = images.to(model.device)
-        labels = labels.to(model.device)
-        output = model(images)
-        predict = torch.argmax(output, -1)
-
-        for l, p in zip(labels, predict):
-            cf_mtx[l, p] += 1
-
-    return cf_mtx
-
-def plot_confusion_matrix(confusion_matrix):
-    num_class = confusion_matrix.shape[0]
-    df_cm = pd.DataFrame(confusion_matrix, index=data.id_label(slice(num_class)),
-                                columns=data.id_label(slice(num_class)))
-    sn.heatmap(df_cm, annot=True, fmt='g')
-    plt.show()
-
 def train(model, optimizer, max_epoch, train_data,
           validation=None, scheduler=None, lr_step='epoch',
           checkpoint_dir=None, max_tolerance=-1, loss_weight=None):
@@ -161,6 +137,37 @@ def inference(model, image):
 
     return predict
 
+@torch.no_grad()
+def get_confusion_matrix(model, test_data):
+
+    num_class = test_data.dataset.n_class
+    cf_mtx1 = np.zeros([num_class, num_class])
+    cf_mtx2 = np.zeros([2, 2])
+
+    model.eval()
+    for images, labels in test_data:
+        images = images.to(model.device)
+        labels = labels.to(model.device)
+        output = model(images)
+        predict = torch.argmax(output, -1)
+
+        for l, p in zip(labels, predict):
+            cf_mtx1[l, p] += 1
+
+        labels = data.isrecyclable(labels) * 1
+        predict = data.isrecyclable(predict) * 1
+
+        for l, p in zip(labels, predict):
+            cf_mtx2[l, p] += 1
+
+    return cf_mtx1, cf_mtx2
+
+def plot_confusion_matrix(confusion_matrix):
+    num_class = confusion_matrix.shape[0]
+    df_cm = pd.DataFrame(confusion_matrix, index=data.id_label(slice(num_class)),
+                                columns=data.id_label(slice(num_class)))
+    sn.heatmap(df_cm, annot=True, fmt='g')
+    plt.show()
 
 if __name__ == '__main__':
 

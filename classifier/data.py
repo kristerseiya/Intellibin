@@ -42,42 +42,42 @@ def get_transform(mode):
 
 def get_label(obj_type):
     if obj_type.startswith('cardboard'):
-        return 0, True
+        return 0
     elif obj_type.startswith('paper_bag'):
-        return 0, True
+        return 0
     elif obj_type.startswith('paper_box'):
-        return 1, True
+        return 1
     elif obj_type.startswith('paper'):
-        return 1, True
+        return 1
     elif obj_type.startswith('glass'):
-        return 2, True
+        return 2
     elif obj_type.startswith('metal_can'):
-        return 3, True
+        return 3
     elif obj_type.startswith('metal'):
-        return 4, True
+        return 4
     elif obj_type.startswith('plastic_bottle'):
-        return 5, True
+        return 5
     elif obj_type.startswith('milk_jug'):
-        return 5, True
+        return 5
     elif obj_type.startswith('plastic_box'):
-        return 6, True
+        return 6
     elif obj_type.startswith('other_plastic'):
-        return 6, True
+        return 6
     elif obj_type.startswith('plastic_bag'):
-        return 7, False
+        return 7
     elif obj_type.startswith('disposable_cup'):
-        return 8, False
+        return 8
     elif obj_type.startswith('snack_wrapper') or obj_type.startswith('food_wrap') or \
         obj_type.startswith('nontrans_plastic_bag_me'):
-        return 9, False
+        return 9
     elif obj_type.startswith('dirty_plate') or obj_type.startswith('food'):
-        return 10, False
+        return 10
     elif obj_type.startswith('pizza_box') or obj_type.startswith('styrofoam'):
-        return 11, False
+        return 11
     elif obj_type.startswith('battery') or obj_type.startswith('electronic') or \
         obj_type.startswith('other'):
-        return 12, False
-    return 12, False
+        return 12
+    return 12
 
 def id_label(label):
     classes = ['paper 1', 'paper 2', 'glass', 'metal can', 'metal', 'plastic bottle',
@@ -90,9 +90,11 @@ def isrecyclable(label):
 
 class WasteNetSubset(Dataset):
     def __init__(self, dataset, indices, mode='none'):
+        super().__init__()
         self.dataset = dataset
         self.indices = indices
         self.transform = get_transform(mode)
+        self.n_class = self.dataset.n_class
 
     def __getitem__(self, idx):
         imgs = self.dataset.images[self.indices[idx]]
@@ -165,8 +167,9 @@ class WasteNetDataset(Dataset):
     def create_labels(self):
         self.labels = list()
         for obj_type in self.obj_types:
-            a, b = get_label(obj_type)
+            a = get_label(obj_type)
             self.labels.append(a)
+        self.n_class = max(self.labels) + 1
 
     def set_mode(self, mode):
         self.transform = get_transform(mode)
