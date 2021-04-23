@@ -163,10 +163,11 @@ def get_confusion_matrix(model, test_data):
 
     return cf_mtx1, cf_mtx2
 
-def plot_confusion_matrix(confusion_matrix):
+def plot_confusion_matrix(confusion_matrix, labels=None):
     num_class = confusion_matrix.shape[0]
-    df_cm = pd.DataFrame(confusion_matrix, index=data.id_label(slice(num_class)),
-                                columns=data.id_label(slice(num_class)))
+    if labels == None:
+        labels = data.id_label(slice(num_class))
+    df_cm = pd.DataFrame(confusion_matrix, index=labels, columns=labels)
     sn.heatmap(df_cm, annot=True, fmt='g')
     plt.show()
 
