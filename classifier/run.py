@@ -70,7 +70,7 @@ def validate(model, test_data, loss_weight=None):
 
     avg_loss = total_loss / float(count)
     accuracy1 = n_correct1 / float(count)
-    accuracy2 = n_correct1 / float(count)
+    accuracy2 = n_correct2 / float(count)
 
     return avg_loss, accuracy1, accuracy2
 
@@ -119,7 +119,7 @@ def train(model, optimizer, max_epoch, train_data,
 
         print('Train Loss: {:.3f}'.format(log[e, 0]))
         print('Train Obj Accs: {:.3f}'.format(log[e, 1]))
-        print('Train Bin Accs: {:.3f}'.format(log[e, 2]))
+        print('Train Bin Accs: {:.3f}\n'.format(log[e, 2]))
 
         if lr_step == 'epoch' and scheduler is not None:
 
@@ -131,7 +131,7 @@ def train(model, optimizer, max_epoch, train_data,
 
             print('Val Loss: {:.3f}'.format(log[e, 3]))
             print('Val Obj Accs: {:.3f}'.format(log[e, 4]))
-            print('Val Bin Accs: {:.3f}'.format(log[e, 5]))
+            print('Val Bin Accs: {:.3f}\n'.format(log[e, 5]))
 
             if checkpoint_dir != None and (best_loss > log[e, 3]):
                 best_loss = log[e, 3]

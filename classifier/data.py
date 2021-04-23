@@ -7,6 +7,7 @@ from PIL import Image
 import os
 import numpy as np
 from tqdm import tqdm
+import sys
 
 class AddNoise():
     def __init__(self, max=15):
@@ -80,7 +81,7 @@ def get_label(obj_type):
 
 def id_label(label):
     classes = ['paper 1', 'paper 2', 'glass', 'metal can', 'metal', 'plastic bottle',
-               'other plastic', 'plastic bag', 'disposable cup', 'plastic bag',
+               'other plastic', 'plastic bag', 'disposable cup', 'colored plastic bag',
                'food contamination', 'other1', 'other2']
     return classes[label]
 
@@ -136,7 +137,7 @@ class WasteNetDataset(Dataset):
             for subdir in subdirs:
                 ignore = False
                 for exc in exclude:
-                    if subdir.endswith(exc)
+                    if subdir.endswith(exc):
                         ignore = True
                         break
                 if not ignore:
@@ -162,7 +163,7 @@ class WasteNetDataset(Dataset):
         self.transform = get_transform(mode)
 
     def create_labels(self):
-        self.lables = list()
+        self.labels = list()
         for obj_type in self.obj_types:
             a, b = get_label(obj_type)
             self.labels.append(a)
@@ -184,16 +185,17 @@ class WasteNetDataset(Dataset):
             print('{:s}: {:d}'.format(id_label(u), c))
 
     def print_stats(self):
-        (unique, counts) = np.unique(self.labels[self.indices], return_counts=True)
+        (unique, counts) = np.unique(self.labels, return_counts=True)
         n_recyc = 0
         n_nonrecyc = 0
+        print('{:d} classes\n'.format(len(unique)))
         for u, c in zip(unique, counts):
             print('{:s}: {:d}'.format(id_label(u), c))
             if isrecyclable(u):
                 n_recyc += c
             else:
                 n_nonrecyc += c
-        print('Recyclable: {:d}'.format(n_recyc))
+        print('\nRecyclable: {:d}'.format(n_recyc))
         print('Non-recyclable: {:d}'.format(n_nonrecyc))
 
     def split(self, *r):

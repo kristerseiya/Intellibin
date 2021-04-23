@@ -5,10 +5,10 @@ from torchvision.models import mobilenet_v2
 
 
 class WasteNet(nn.Module):
-    def __init__(self):
+    def __init__(self, n_class):
         super().__init__()
         self.featureExtracter = mobilenet_v2(pretrained=True).features
-        self.classifier = nn.Sequential(nn.Dropout(0.2), nn.Linear(1280*7*7, 10))
+        self.classifier = nn.Sequential(nn.Dropout(0.2), nn.Linear(1280*7*7, n_class))
         self.device = torch.device('cpu')
 
     def forward(self, x):
