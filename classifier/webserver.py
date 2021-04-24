@@ -21,7 +21,7 @@ app = Flask(__name__)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 net = model.WasteNet().move(device)
 # net.load_state_dict(torch.load('model/mar31_1103.pth', map_location=device))
-net.load_state_dict(torch.load('model/apr3_1020.pth', map_location=device))
+net.load_state_dict(torch.load('model/apr23_2334.pth', map_location=device))
 net.eval()
 
 def bytes2PILImage(image_bytes):
