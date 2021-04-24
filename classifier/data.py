@@ -42,42 +42,58 @@ def get_transform(mode):
 
 def get_label(obj_type):
     if obj_type.startswith('cardboard'):
+        # return 0
         return 0
     elif obj_type.startswith('paper_bag'):
+        # return 0
         return 0
     elif obj_type.startswith('paper_box'):
         return 1
     elif obj_type.startswith('paper'):
         return 1
     elif obj_type.startswith('glass'):
+        # return 2
         return 2
     elif obj_type.startswith('metal_can'):
+        # return 3
         return 3
     elif obj_type.startswith('metal'):
-        return 4
+        # return 4
+        return 3
     elif obj_type.startswith('plastic_bottle'):
-        return 5
+        # return 5
+        return 4
     elif obj_type.startswith('milk_jug'):
-        return 5
+        # return 5
+        return 4
     elif obj_type.startswith('plastic_box'):
-        return 6
+        # return 6
+        return 5
     elif obj_type.startswith('other_plastic'):
-        return 6
+        # return 6
+        return 5
     elif obj_type.startswith('plastic_bag'):
-        return 7
+        # return 7
+        return 6
     elif obj_type.startswith('disposable_cup'):
-        return 8
+        # return 8
+        return 7
     elif obj_type.startswith('snack_wrapper') or obj_type.startswith('food_wrap') or \
         obj_type.startswith('nontrans_plastic_bag_me'):
-        return 9
+        # return 9
+        return 8
     elif obj_type.startswith('dirty_plate') or obj_type.startswith('food'):
-        return 10
+        # return 10
+        return 9
     elif obj_type.startswith('pizza_box') or obj_type.startswith('styrofoam'):
-        return 11
+        # return 11
+        return 9
     elif obj_type.startswith('battery') or obj_type.startswith('electronic') or \
         obj_type.startswith('other'):
-        return 12
-    return 12
+        # return 12
+        return 9
+    return 9
+
 
 def id_label(label):
     classes = ['paper 1', 'paper 2', 'glass', 'metal can', 'metal', 'plastic bottle',
@@ -108,16 +124,18 @@ class WasteNetSubset(Dataset):
         self.transform = get_transform(mode)
 
     def print_stats(self):
-        (unique, counts) = np.unique(self.dataset.labels[self.indices], return_counts=True)
+        tmp = np.array(self.dataset.labels)
+        (unique, counts) = np.unique(tmp[self.indices], return_counts=True)
         n_recyc = 0
         n_nonrecyc = 0
+        print('{:d} classes\n'.format(len(unique)))
         for u, c in zip(unique, counts):
             print('{:s}: {:d}'.format(id_label(u), c))
             if isrecyclable(u):
                 n_recyc += c
             else:
                 n_nonrecyc += c
-        print('Recyclable: {:d}'.format(n_recyc))
+        print('\nRecyclable: {:d}'.format(n_recyc))
         print('Non-recyclable: {:d}'.format(n_nonrecyc))
 
 class WasteNetDataset(Dataset):
