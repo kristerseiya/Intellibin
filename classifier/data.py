@@ -96,13 +96,13 @@ def get_label(obj_type):
 
 
 def id_label(label):
-    classes = ['paper 1', 'paper 2', 'glass', 'metal can', 'metal', 'plastic bottle',
+    classes = ['paper 1', 'paper 2', 'glass', 'metal', 'plastic bottle',
                'other plastic', 'plastic bag', 'disposable cup', 'colored plastic bag',
-               'food contamination', 'other1', 'other2']
+               'other']
     return classes[label]
 
 def isrecyclable(label):
-    return label < 7
+    return label < 6
 
 class WasteNetSubset(Dataset):
     def __init__(self, dataset, indices, mode='none'):
