@@ -19,7 +19,7 @@ import data
 app = Flask(__name__)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-net = model.WasteNet().move(device)
+net = model.WasteNet(10).move(device)
 # net.load_state_dict(torch.load('model/mar31_1103.pth', map_location=device))
 net.load_state_dict(torch.load('model/apr23_2334.pth', map_location=device))
 net.eval()
@@ -45,7 +45,6 @@ def predict():
         img_bytes = request.data
 
         img = bytes2PILImage(img_bytes)
-
         class_name = get_prediction(img)
         return class_name
 
