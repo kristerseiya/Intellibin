@@ -2,8 +2,11 @@
 #ifndef __PROJECT_H__
 #define __PROJECT_H__
 
-#include <esp_camera.h>
-#include <esp_log.h>
+#include "esp_camera.h"
+#include "esp_log.h"
+#include "driver/gpio.h"
+#include "driver/i2c.h"
+#include "vl53l0x_platform.h"
 
 // #define WIFI_SSID   "Apt Big 10"
 // #define WIFI_PSWD   "B01l3rUp!"
@@ -26,6 +29,12 @@ esp_err_t init_camera(void);
 void init_led(void);
 void init_uart(void);
 void uart_send(const char*, size_t);
+bool init_vl53l0x(VL53L0X_Dev_t* vl53l0x_dev,
+                  i2c_port_t i2c_port,
+                  gpio_num_t pin_sda,
+                  gpio_num_t pin_scl);
+bool vl53l0x_read(VL53L0X_Dev_t* vl53lox_dev, uint16_t *pRangeMilliMeter);
+
 // void example_wifi_init(void);
 // esp_err_t example_espnow_init(void);
 
