@@ -18,7 +18,7 @@ class AddNoise():
 
 def get_transform(mode):
     if mode == 'train':
-        transform = transforms.Compose([transforms.RandomResizedCrop(200, scale=(0.4, 1.0)),
+        transform = transforms.Compose([transforms.RandomResizedCrop(224, scale=(0.5, 1.0)),
                                               transforms.RandomAffine(180, shear=15),
                                               transforms.ColorJitter(0.8, 0.7, 0.7, 0.12),
                                               transforms.RandomVerticalFlip(),
@@ -29,8 +29,8 @@ def get_transform(mode):
                                              ])
 
     elif mode in ['val', 'test']:
-        transform = transforms.Compose([transforms.Resize(200),
-                                              transforms.CenterCrop(200),
+        transform = transforms.Compose([transforms.Resize(224),
+                                              transforms.CenterCrop(224),
                                               transforms.ToTensor(),
                                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                                              ])
@@ -84,21 +84,20 @@ def get_label(obj_type):
         return 8
     elif obj_type.startswith('dirty_plate') or obj_type.startswith('food'):
         # return 10
-        return 9
+        return 8
     elif obj_type.startswith('pizza_box') or obj_type.startswith('styrofoam'):
         # return 11
-        return 9
+        return 8
     elif obj_type.startswith('battery') or obj_type.startswith('electronic') or \
         obj_type.startswith('other'):
         # return 12
-        return 9
-    return 9
+        return 8
+    return 8
 
 
 def id_label(label):
     classes = ['paper 1', 'paper 2', 'glass', 'metal', 'plastic bottle',
-               'other plastic', 'plastic bag', 'disposable cup', 'colored plastic bag',
-               'other']
+               'other plastic', 'plastic bag', 'disposable cup', 'other']
     return classes[label]
 
 def isrecyclable(label):
@@ -107,24 +106,30 @@ def isrecyclable(label):
 class WasteNetSubset(Dataset):
     def __init__(self, dataset, indices, mode='none'):
         super().__init__()
-        self.dataset = dataset
+        self.images = dataset.images
+        self.labels = dataset.labels
         self.indices = indices
         self.transform = get_transform(mode)
-        self.n_class = self.dataset.n_class
+        self.n_class = dataset.n_class
+        self.add_idx = list()
 
     def __getitem__(self, idx):
-        imgs = self.dataset.images[self.indices[idx]]
-        labels = self.dataset.labels[self.indices[idx]]
+        if idx > len(self.labels):
+            imgs = self.images[self.indices[self.add_idx[idx-len(self.labels)]]]
+            labels = self.labels[self.indices[self.add_idx[idx-len(self.labels)]]]
+        else:
+            imgs = self.images[self.indices[idx]]
+            labels = self.labels[self.indices[idx]]
         return self.transform(imgs), labels
 
     def __len__(self):
-        return len(self.indices)
+        return len(self.indices) + len(self.add_idx)
 
     def set_mode(self, mode):
         self.transform = get_transform(mode)
 
     def print_stats(self):
-        tmp = np.array(self.dataset.labels)
+        tmp = np.array(self.labels)
         (unique, counts) = np.unique(tmp[self.indices], return_counts=True)
         n_recyc = 0
         n_nonrecyc = 0
@@ -138,12 +143,21 @@ class WasteNetSubset(Dataset):
         print('\nRecyclable: {:d}'.format(n_recyc))
         print('Non-recyclable: {:d}'.format(n_nonrecyc))
 
+    def repeat(self, nums):
+        self.add_idx = list()
+        for i in range(len(self.indices)):
+            for _ in range(nums[self.labels[self.indices[i]]-1):
+                self.add_idx.append(i)
+
+
 class WasteNetDataset(Dataset):
-    def __init__(self, root_dirs, mode='none', store='RAM', exclude='google'):
+    def __init__(self, root_dirs, mode='none', exclude='google'):
         super().__init__()
         self.images = list()
         self.obj_types = list()
-        self.store = store.upper()
+        # self.store = store.upper()
+        self.transform = get_transform(mode)
+        self.add_idx = list()
 
         if type(root_dirs) != list:
             root_dirs = list(root_dirs)
@@ -180,8 +194,6 @@ class WasteNetDataset(Dataset):
 
         tqdm.close(pbar)
 
-        self.transform = get_transform(mode)
-
     def create_labels(self):
         self.labels = list()
         for obj_type in self.obj_types:
@@ -193,12 +205,20 @@ class WasteNetDataset(Dataset):
         self.transform = get_transform(mode)
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.labels) + len(self.add_idx)
 
     def __getitem__(self, idx):
-        if self.store == 'DISK':
-            return self.transform(Image.open(self.images[idx]).convert('RGB')), self.labels[idx]
-        return self.transform(self.images[idx]), self.labels[idx]
+        if idx > len(self.labels):
+            imgs = self.images[self.add_idx[idx-len(self.labels)]]
+            labels = self.labels[self.add_idx[idx-len(self.labels)]]
+        else:
+            imgs = self.images[idx]
+            labels = self.labels[idx]
+        return self.transform(imgs), labels
+        #
+        # if self.store == 'DISK':
+        #     return self.transform(Image.open(self.images[idx]).convert('RGB')), self.labels[idx]
+        # return self.transform(self.images[idx]), self.labels[idx]
 
     def print_stats(self):
         (unique, counts) = np.unique(self.labels, return_counts=True)
@@ -235,3 +255,9 @@ class WasteNetDataset(Dataset):
         subsets.append(WasteNetSubset(self, indices[start:]))
 
         return subsets
+
+    def repeat(self, nums):
+        self.add_idx = list()
+        for i in range(len(self.labels)):
+            for _ in range(nums[self.labels[i]]-1):
+                self.add_idx.append(i)
