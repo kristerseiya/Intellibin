@@ -155,7 +155,7 @@ class WasteNetDataset(Dataset):
         super().__init__()
         self.images = list()
         self.obj_types = list()
-        # self.store = store.upper()
+        self.store = 'RAM'
         self.transform = get_transform(mode)
         self.add_idx = list()
 
