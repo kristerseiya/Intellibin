@@ -146,7 +146,7 @@ class WasteNetSubset(Dataset):
     def repeat(self, nums):
         self.add_idx = list()
         for i in range(len(self.indices)):
-            for _ in range(nums[self.labels[self.indices[i]]-1):
+            for _ in range(nums[self.labels[self.indices[i]]]-1):
                 self.add_idx.append(i)
 
 
