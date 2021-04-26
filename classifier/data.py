@@ -114,7 +114,7 @@ class WasteNetSubset(Dataset):
         self.add_idx = list()
 
     def __getitem__(self, idx):
-        if idx > len(self.labels):
+        if idx >= len(self.labels):
             imgs = self.images[self.indices[self.add_idx[idx-len(self.labels)]]]
             labels = self.labels[self.indices[self.add_idx[idx-len(self.labels)]]]
         else:
@@ -208,7 +208,7 @@ class WasteNetDataset(Dataset):
         return len(self.labels) + len(self.add_idx)
 
     def __getitem__(self, idx):
-        if idx > len(self.labels):
+        if idx >= len(self.labels):
             imgs = self.images[self.add_idx[idx-len(self.labels)]]
             labels = self.labels[self.add_idx[idx-len(self.labels)]]
         else:
