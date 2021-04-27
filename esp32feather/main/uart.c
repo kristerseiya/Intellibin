@@ -17,83 +17,7 @@
 
 #include "project.h"
 
-#include "driver/mcpwm.h"
-#include "soc/mcpwm_periph.h"
-
-//You can get these value from the datasheet of servo you use, in general pulse width varies between 1000 to 2000 mocrosecond
-#define SERVO_MIN_PULSEWIDTH 1000 //Minimum pulse width in microsecond
-#define SERVO_MAX_PULSEWIDTH 2000 //Maximum pulse width in microsecond
-#define SERVO_MAX_DEGREE 90       //Maximum angle in degree upto which servo can rotate
-
-static void mcpwm_example_gpio_initialize()
-{
-    printf("initializing mcpwm servo control gpio......\n");
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, 21); //Set GPIO 21 as PWM0A, to which servo is connected
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, 26);
-}
-
-/**
- * @brief Use this function to calcute pulse width for per degree rotation
- *
- * @param  degree_of_rotation the angle in degree to which servo has to rotate
- *
- * @return
- *     - calculated pulse width
- */
-static uint32_t servo_per_degree_init(uint32_t degree_of_rotation)
-{
-    uint32_t cal_pulsewidth = 0;
-    cal_pulsewidth = (SERVO_MIN_PULSEWIDTH + (((SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) * (degree_of_rotation)) / (SERVO_MAX_DEGREE)));
-    return cal_pulsewidth;
-}
-
-/**
- * @brief Configure MCPWM module
- */
-void mcpwm_servo_control(char a)
-{
-    //2. initial mcpwm configuration
-         //Configure PWM0A & PWM0B with above setting
-
-    //1. mcpwm gpio initialization
-
-        uint32_t angle;
-
-        if(a == 'R') {
-            angle = servo_per_degree_init(0);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
-            vTaskDelay(200);
-
-            angle = servo_per_degree_init(80);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
-            vTaskDelay(500);
-        }
-
-        else {
-            angle = servo_per_degree_init(0);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
-            vTaskDelay(200);
-
-            angle = servo_per_degree_init(80);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
-            vTaskDelay(500);
-        }
-}
-
 static const char *TAG = "uart_events";
-
-/**
- * This example shows how to use the UART driver to handle special UART events.
- *
- * It also reads data from UART0 directly, and echoes it to console.
- *
- * - Port: UART0
- * - Receive (Rx) buffer: on
- * - Transmit (Tx) buffer: off
- * - Flow control: off
- * - Event queue: on
- * - Pin assignment: TxD (default), RxD (default)
- */
 
 #define EX_UART_NUM UART_NUM_0
 #define PATTERN_CHR_NUM    (3)         /*!< Set the number of consecutive and identical characters received by receiver which defines a UART pattern*/
@@ -102,7 +26,36 @@ static const char *TAG = "uart_events";
 #define RD_BUF_SIZE (BUF_SIZE)
 static QueueHandle_t uart0_queue;
 
-static void uart_event_task(void *pvParameters)
+void init_uart(void) {
+  esp_log_level_set(TAG, ESP_LOG_INFO);
+
+  /* Configure parameters of an UART driver,
+   * communication pins and install the driver */
+  uart_config_t uart_config = {
+      .baud_rate = 115200,
+      .data_bits = UART_DATA_8_BITS,
+      .parity = UART_PARITY_DISABLE,
+      .stop_bits = UART_STOP_BITS_1,
+      .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+      .source_clk = UART_SCLK_APB,
+  };
+  //Install UART driver, and get the queue.
+  uart_driver_install(EX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart0_queue, 0);
+  uart_param_config(EX_UART_NUM, &uart_config);
+
+  //Set UART log level
+  esp_log_level_set(TAG, ESP_LOG_INFO);
+  //Set UART pins (using UART0 default pins ie no changes.)
+  // uart_set_pin(EX_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+  uart_set_pin(EX_UART_NUM, GPIO_NUM_17, GPIO_NUM_16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+
+  //Set uart pattern detect function.
+  uart_enable_pattern_det_baud_intr(EX_UART_NUM, '+', PATTERN_CHR_NUM, 9, 0, 0);
+  //Reset the pattern queue length to record at most 20 pattern positions.
+  uart_pattern_queue_reset(EX_UART_NUM, 20);
+}
+
+static void uart_event_task(void (*task)(const char*) )
 {
     uart_event_t event;
     size_t buffered_size;
@@ -122,14 +75,7 @@ static void uart_event_task(void *pvParameters)
                     uart_read_bytes(EX_UART_NUM, dtmp, event.size, portMAX_DELAY);
                     ESP_LOGI(TAG, "[DATA EVT]:");
                     uart_write_bytes(EX_UART_NUM, (const char*) dtmp, event.size);
-                    lcd_write_instruction(0b00000001);
-                    //lcd_clear();
-                    vTaskDelay(5 / portTICK_PERIOD_MS);
-                    lcd_write_instruction(0b10000000);
-                    // lcd_go_to_line1();
-                    vTaskDelay(5 / portTICK_PERIOD_MS);
-                    lcd_print((uint8_t*)dtmp);
-                    mcpwm_servo_control(dtmp[0]);
+                    task((const char*)dtmp);
                     break;
                 //Event of HW FIFO overflow detected
                 case UART_FIFO_OVF:
@@ -191,49 +137,7 @@ static void uart_event_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-void app_main(void)
-{
-
-    esp_log_level_set(TAG, ESP_LOG_INFO);
-
-    /* Configure parameters of an UART driver,
-     * communication pins and install the driver */
-    uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_APB,
-    };
-    //Install UART driver, and get the queue.
-    uart_driver_install(EX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart0_queue, 0);
-    uart_param_config(EX_UART_NUM, &uart_config);
-
-    //Set UART log level
-    esp_log_level_set(TAG, ESP_LOG_INFO);
-    //Set UART pins (using UART0 default pins ie no changes.)
-    // uart_set_pin(EX_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_set_pin(EX_UART_NUM, GPIO_NUM_17, GPIO_NUM_16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-
-    //Set uart pattern detect function.
-    uart_enable_pattern_det_baud_intr(EX_UART_NUM, '+', PATTERN_CHR_NUM, 9, 0, 0);
-    //Reset the pattern queue length to record at most 20 pattern positions.
-    uart_pattern_queue_reset(EX_UART_NUM, 20);
-
-    init_lcd();
-    
-    mcpwm_example_gpio_initialize();
-
-    printf("Configuring Initial Parameters of mcpwm......\n");
-    mcpwm_config_t pwm_config;
-    pwm_config.frequency = 50; //frequency = 50Hz, i.e. for every servo motor time period should be 20ms
-    pwm_config.cmpr_a = 0;     //duty cycle of PWMxA = 0
-    pwm_config.cmpr_b = 0;     //duty cycle of PWMxb = 0
-    pwm_config.counter_mode = MCPWM_UP_COUNTER;
-    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
-
-    //Create a task to handler UART event from ISR
-    xTaskCreate(uart_event_task, "uart_event_task", 2048, NULL, 12, NULL);
+void create_task(void(*task)(const char*)) {
+  // xTaskCreate(uart_event_task, "uart_event_task", 2048, task, 12, NULL);
+  xTaskCreate(uart_event_task, "uart_event_task", 5012, task, 12, NULL);
 }

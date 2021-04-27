@@ -5,6 +5,10 @@
 #
 # register_component()
 
-idf_component_register(SRCS "uart_events_example_main.c"
+idf_component_register(SRCS "app_main.c"
                             "lcd.c"
-                      INCLUDE_DIRS ".")
+                            "motor.c"
+                            "thinkspeak.c"
+                            "uart.c"
+                            "vl53l0x.c"
+                      INCLUDE_DIRS "include")
