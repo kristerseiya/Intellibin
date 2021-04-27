@@ -8,6 +8,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import sys
+import model
 
 class AddNoise():
     def __init__(self, max=15):
@@ -96,8 +97,8 @@ def get_label(obj_type):
 
 
 def id_label(label):
-    classes = ['paper 1', 'paper 2', 'glass', 'metal', 'plastic bottle',
-               'other plastic', 'plastic bag', 'disposable cup', 'other']
+    classes = ['R, paper 1', 'R, paper 2', 'R, glass', 'R, metal', 'R, plastic bottle',
+               'R, other plastic', 'N, plastic bag', 'N, disposable cup', 'N, other']
     return classes[label]
 
 def isrecyclable(label):
@@ -261,3 +262,30 @@ class WasteNetDataset(Dataset):
         for i in range(len(self.labels)):
             for _ in range(nums[self.labels[i]]-1):
                 self.add_idx.append(i)
+
+    def preprocess(self):
+        bgremover = model.U2NET()
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        bgremover.load_state_dict(torch.load('model/u2net.pth', map_location=device))
+        bgremover.eval()
+        b = torch.ones(1, 3, 320, 320, device=device)
+        b = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])(b)
+        pbar = tqdm(total=len(self.images), position=0, leave=False, file=sys.stdout)
+        for i in range(len(self.images)):
+            image = self.images[i]
+            x = image.resize([320, 320])
+            x = transforms.ToTensor()(img)
+            x = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])(x)
+            x = x.view(1, *x.size())
+            with torch.no_grad():
+                mask, _, _, _, _, _, _ = bgremover(x)
+            x = x * mask + b * (1 - mask)
+            x = x.squeeze(0)
+            x = x.detach().cpu().numpy()
+            x[0, :, :] = x[0, :, :] * 0.229 + 0.485
+            x[1, :, :] = x[1, :, :] * 0.224 + 0.456
+            x[2, :, :] = x[2, :, :] * 0.225 + 0.406
+            x = x.transpose([1, 2, 0])
+            self.images[i] = Image.fromarray((x*255).astype(np.uint8)).convert('RGB')
+            pbar.update(1)
+        tqdm.close(pbar)
