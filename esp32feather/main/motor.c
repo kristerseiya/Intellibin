@@ -59,22 +59,28 @@ void mcpwm_servo_control(char a)
         uint32_t angle;
 
         if(a == 'R') {
-            angle = servo_per_degree_init(0);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
-            vTaskDelay(2000 / portTICK_RATE_MS);
+		for(int i=70; i>=0; i=i-5) {        
+            		angle = servo_per_degree_init(i);
+            		mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
+            		vTaskDelay(30 / portTICK_RATE_MS);
+        	}
+        	vTaskDelay(2000 / portTICK_RATE_MS);
 
-            angle = servo_per_degree_init(80);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
-            vTaskDelay(2000 / portTICK_RATE_MS);
+        	angle = servo_per_degree_init(70);
+        	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
+        	vTaskDelay(5000 / portTICK_RATE_MS);
         }
 
         else {
-            angle = servo_per_degree_init(0);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
-            vTaskDelay(2000 / portTICK_RATE_MS);
+            	for(int i=70; i>=0; i=i-5) {        
+            		angle = servo_per_degree_init(i);
+            		mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
+            		vTaskDelay(30 / portTICK_RATE_MS);
+        	}
+        	vTaskDelay(2000 / portTICK_RATE_MS);
 
-            angle = servo_per_degree_init(80);
-            mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
-            vTaskDelay(2000 / portTICK_RATE_MS);
+        	angle = servo_per_degree_init(70);
+        	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
+        	vTaskDelay(5000 / portTICK_RATE_MS);
         }
 }
