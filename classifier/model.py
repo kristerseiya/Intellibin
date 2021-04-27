@@ -6,9 +6,9 @@ import torch.nn.functional as F
 
 
 class WasteNet(nn.Module):
-    def __init__(self, n_class):
+    def __init__(self, n_class, pretrained=True):
         super().__init__()
-        self.model = mobilenet_v2(pretrained=True)
+        self.model = mobilenet_v2(pretrained=pretrained)
         self.model.classifier[1] = nn.Linear(self.model.classifier[1].in_features, n_class)
         self.device = torch.device('cpu')
 
