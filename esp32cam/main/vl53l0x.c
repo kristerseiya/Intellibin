@@ -87,14 +87,15 @@ static VL53L0X_Error _init_vl53l0x(VL53L0X_Dev_t *pDevice) {
   return status;
 }
 
-static bool vl53l0x_set_time_budget(uint32_t TimingBudgetMicroSeconds) {
+static bool vl53l0x_set_time_budget(VL53L0X_Dev_t* vl53l0x_dev,
+                                    uint32_t TimingBudgetMicroSeconds) {
   VL53L0X_Error status = VL53L0X_SetMeasurementTimingBudgetMicroSeconds(
-      &vl53l0x_dev, TimingBudgetMicroSeconds);
+      vl53l0x_dev, TimingBudgetMicroSeconds);
   if (status != VL53L0X_ERROR_NONE) {
     print_pal_error(status, "VL53L0X_SetMeasurementTimingBudgetMicroSeconds");
     return false;
   }
-  this->TimingBudgetMicroSeconds = TimingBudgetMicroSeconds;
+  // this->TimingBudgetMicroSeconds = TimingBudgetMicroSeconds;
   return true;
 }
 
@@ -115,12 +116,12 @@ bool init_vl53l0x(VL53L0X_Dev_t* vl53l0x_dev,
                             VL53L0X_GPIOFUNCTIONALITY_NEW_MEASURE_READY,
                             VL53L0X_INTERRUPTPOLARITY_LOW))
     return false;
-  if (!vl53l0x_set_time_budget(33000))
+  if (!vl53l0x_set_time_budget(vl53l0x_dev, 33000))
     return false;
   return true;
 }
 
-bool vl53l0x_read(VL53L0X_Dev_t* vl53lox_dev, uint16_t *pRangeMilliMeter) {
+bool vl53l0x_read(VL53L0X_Dev_t* vl53l0x_dev, uint16_t* pRangeMilliMeter) {
   // if (gpio_gpio1 != GPIO_NUM_MAX)
   //   return readSingleWithInterrupt(pRangeMilliMeter);
   VL53L0X_RangingMeasurementData_t MeasurementData;

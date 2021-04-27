@@ -28,5 +28,4 @@ ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, uart_buffer_size,
 
 void uart_send(const char* str, size_t size) {
   uart_write_bytes(UART_NUM_2, str, size);
-  printf("%d: %s", size, str);
 }

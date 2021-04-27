@@ -23,8 +23,6 @@
 
 #include "project.h"
 
-#define MAX_HTTP_RECV_BUFFER 512
-#define MAX_HTTP_OUTPUT_BUFFER 512
 static const char *TAG = "HTTP_CLIENT";
 
 /*
