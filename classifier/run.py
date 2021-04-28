@@ -136,7 +136,7 @@ def inference(model, image):
     output = model(x)
     predict = torch.argmax(output, -1).item()
 
-    return predict
+    return predict, output
 
 @torch.no_grad()
 def get_confusion_matrix(model, test_data):
@@ -200,20 +200,9 @@ if __name__ == '__main__':
     parser.add_argument('--image', type=str, default=None)
     parser.add_argument('--weights', type=str, required=True)
     args = parser.parse_args()
-#
-#     dataset = data.WasteNetDataset(args.data_dir)
-#     trainset, valset, testset = dataset.split(0.7, 0.1, 0.2)
-#     trainloader = DataLoader(trainset, batch_size=64, shuffle=True, drop_last=True)
-#     valloader = DataLoader(valset, batch_size=64, shuffle=False)
-#     testloader = DataLoader(testset, batch_size=64, shuffle=False)
-#
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    net = model.WasteNet().to(device)
-#     if args.weights != None:
+    net = model.WasteNet(9).to(device)
     net.load_state_dict(torch.load(args.weights, map_location=device))
-    label = inference(net, Image.open(args.image).convert('RGB'))
+    label, score = inference(net, Image.open(args.image).convert('RGB'))
     print(data.id_label(label))
-#     optimizer = Adam(net.parameters(), lr=1e-4)
-#     train(net, optimizer, args.n_epoch, trainloader, valloader, args.save, -1)
-#
-#     torch.save(net.state_dict(), os.path.join(args.save, 'final.pth'))
