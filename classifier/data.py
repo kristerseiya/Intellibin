@@ -20,8 +20,12 @@ class AddNoise():
 def get_transform(mode):
     if mode == 'train':
         transform = transforms.Compose([transforms.RandomResizedCrop(224, scale=(0.5, 1.0)),
-                                              transforms.RandomAffine(180, shear=15),
-                                              transforms.ColorJitter(0.8, 0.7, 0.7, 0.12),
+                                              transforms.RandomAffine(90, translate=(0.2, 0.2), shear=15),
+                                              # transforms.ColorJitter(0.8, 0.7, 0.7, 0.12),
+                                              transforms.ColorJitter(brightness=[0.4, 1.0],
+                                                                     contrast=[0.7, 1.1],
+                                                                     saturation=[0.1, 1.0],
+                                                                     hue=[-0.07, 0.07]),
                                               transforms.RandomVerticalFlip(),
                                               transforms.RandomHorizontalFlip(),
                                               transforms.ToTensor(),
