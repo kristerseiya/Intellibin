@@ -28,7 +28,7 @@ void app_main()
       bool res = vl53l0x_read(&tof_device, &result_mm);
       if (res) {
         ESP_LOGI(TAG, "Range: %d [mm]", (int)result_mm);
-        if (result_mm < 100) {
+        if (result_mm < 350) {
           ESP_LOGI(TAG, "Taking picture...");
           camera_fb_t *pic = esp_camera_fb_get();
 
@@ -36,7 +36,7 @@ void app_main()
           ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);
           size_t content_length = http_request_post(pic, response);
           if (content_length > 0) {
-            uart_send(response, content_length);
+            uart_send(response, strlen(response)+1);
           }
           vTaskDelay(10000 / portTICK_RATE_MS);
           }

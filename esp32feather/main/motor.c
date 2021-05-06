@@ -29,6 +29,12 @@ void mcpwm_example_gpio_initialize()
     pwm_config.counter_mode = MCPWM_UP_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+
+    uint32_t angle;
+    angle = servo_per_degree_init(15);
+    mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
+    angle = servo_per_degree_init(0);
+    mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
 }
 
 /**
@@ -59,28 +65,32 @@ void mcpwm_servo_control(char a)
         uint32_t angle;
 
         if(a == 'R') {
-		for(int i=70; i>=0; i=i-5) {        
+          for (int i = 15; i <= 80; i=i+1) {
+            angle = servo_per_degree_init(i);
+          	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
+            vTaskDelay(20 / portTICK_RATE_MS);
+          }
+          vTaskDelay(8000 / portTICK_RATE_MS);
+
+		      for(int i=80; i>=15; i=i-1) {
             		angle = servo_per_degree_init(i);
             		mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
             		vTaskDelay(30 / portTICK_RATE_MS);
         	}
-        	vTaskDelay(2000 / portTICK_RATE_MS);
-
-        	angle = servo_per_degree_init(70);
-        	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
-        	vTaskDelay(5000 / portTICK_RATE_MS);
         }
 
         else {
-            	for(int i=70; i>=0; i=i-5) {        
+          for (int i = 0; i <= 60; i=i+2) {
+            angle = servo_per_degree_init(i);
+          	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
+            vTaskDelay(20 / portTICK_RATE_MS);
+          }
+        	vTaskDelay(8000 / portTICK_RATE_MS);
+
+          for(int i=60; i>=0; i=i-2) {
             		angle = servo_per_degree_init(i);
             		mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
             		vTaskDelay(30 / portTICK_RATE_MS);
         	}
-        	vTaskDelay(2000 / portTICK_RATE_MS);
-
-        	angle = servo_per_degree_init(70);
-        	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, angle);
-        	vTaskDelay(5000 / portTICK_RATE_MS);
         }
 }

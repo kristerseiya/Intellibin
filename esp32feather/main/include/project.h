@@ -11,6 +11,13 @@
 #define PIN_LCD_E   GPIO_NUM_27
 #define PIN_LCD_RW  GPIO_NUM_12
 #define PIN_LCD_RS  GPIO_NUM_13
+// #define PIN_LCD_D7  GPIO_NUM_13
+// #define PIN_LCD_D6  GPIO_NUM_12
+// #define PIN_LCD_D5  GPIO_NUM_27
+// #define PIN_LCD_D4  GPIO_NUM_33
+// #define PIN_LCD_E   GPIO_NUM_15
+// #define PIN_LCD_RW  GPIO_NUM_32
+// #define PIN_LCD_RS  GPIO_NUM_14
 
 #define I2C_PORT1 I2C_NUM_0
 #define PIN_SDA1 GPIO_NUM_23
@@ -22,8 +29,10 @@
 #define PIN_MOTOR1 GPIO_NUM_21
 #define PIN_MOTOR2 GPIO_NUM_26
 
-#define WIFI_SSID "OnePlus 7 Pro"
-#define WIFI_PSWD "soccer3006"
+// #define WIFI_SSID "OnePlus 7 Pro"
+// #define WIFI_PSWD "soccer3006"
+#define WIFI_SSID "Aathavan"
+#define WIFI_PSWD "Purdue123"
 
 #define THINKSPEAK_SERVER "https://api.thingspeak.com/update"
 #define THINKSPEAK_API_KEY "FUMY2NOXR6FCKVWO"

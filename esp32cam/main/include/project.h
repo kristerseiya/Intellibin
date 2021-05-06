@@ -10,10 +10,13 @@
 
 // #define WIFI_SSID   "Apt Big 10"
 // #define WIFI_PSWD   "B01l3rUp!"
-#define WIFI_SSID   "The Twelve"
-#define WIFI_PSWD   "upxbrmcamkz4d"
+// #define WIFI_SSID   "The Twelve"
+// #define WIFI_PSWD   "upxbrmcamkz4d"
+#define WIFI_SSID "Aathavan"
+#define WIFI_PSWD "Purdue123"
 // #define SERVER_ADDR "http://192.168.1.122:8889/predict"
-#define SERVER_ADDR "http://172.20.10.2:8889/predict"
+// #define SERVER_ADDR "http://172.20.10.2:8889/predict"
+#define SERVER_ADDR "http://10.0.0.78:8889/predict"
 #define MAX_HTTP_OUTPUT_BUFFER 512
 
 #define I2C_PORT  I2C_NUM_0

@@ -53,6 +53,9 @@ void init_uart(void) {
   uart_enable_pattern_det_baud_intr(EX_UART_NUM, '+', PATTERN_CHR_NUM, 9, 0, 0);
   //Reset the pattern queue length to record at most 20 pattern positions.
   uart_pattern_queue_reset(EX_UART_NUM, 20);
+
+  uart_flush_input(EX_UART_NUM);
+  xQueueReset(uart0_queue);
 }
 
 static void uart_event_task(void (*task)(const char*) )
@@ -106,26 +109,26 @@ static void uart_event_task(void (*task)(const char*) )
                 case UART_FRAME_ERR:
                     ESP_LOGI(TAG, "uart frame error");
                     break;
-                //UART_PATTERN_DET
-                case UART_PATTERN_DET:
-                    uart_get_buffered_data_len(EX_UART_NUM, &buffered_size);
-                    int pos = uart_pattern_pop_pos(EX_UART_NUM);
-                    ESP_LOGI(TAG, "[UART PATTERN DETECTED] pos: %d, buffered size: %d", pos, buffered_size);
-                    if (pos == -1) {
-                        // There used to be a UART_PATTERN_DET event, but the pattern position queue is full so that it can not
-                        // record the position. We should set a larger queue size.
-                        // As an example, we directly flush the rx buffer here.
-                        uart_flush_input(EX_UART_NUM);
-                    } else {
-                        uart_read_bytes(EX_UART_NUM, dtmp, pos, 100 / portTICK_PERIOD_MS);
-                        uint8_t pat[PATTERN_CHR_NUM + 1];
-                        memset(pat, 0, sizeof(pat));
-                        uart_read_bytes(EX_UART_NUM, pat, PATTERN_CHR_NUM, 100 / portTICK_PERIOD_MS);
-                        ESP_LOGI(TAG, "read data: %s", dtmp);
-                        ESP_LOGI(TAG, "read pat : %s", pat);
-                    }
-                    break;
-                //Others
+                // //UART_PATTERN_DET
+                // case UART_PATTERN_DET:
+                //     uart_get_buffered_data_len(EX_UART_NUM, &buffered_size);
+                //     int pos = uart_pattern_pop_pos(EX_UART_NUM);
+                //     ESP_LOGI(TAG, "[UART PATTERN DETECTED] pos: %d, buffered size: %d", pos, buffered_size);
+                //     if (pos == -1) {
+                //         // There used to be a UART_PATTERN_DET event, but the pattern position queue is full so that it can not
+                //         // record the position. We should set a larger queue size.
+                //         // As an example, we directly flush the rx buffer here.
+                //         uart_flush_input(EX_UART_NUM);
+                //     } else {
+                //         uart_read_bytes(EX_UART_NUM, dtmp, pos, 100 / portTICK_PERIOD_MS);
+                //         uint8_t pat[PATTERN_CHR_NUM + 1];
+                //         memset(pat, 0, sizeof(pat));
+                //         uart_read_bytes(EX_UART_NUM, pat, PATTERN_CHR_NUM, 100 / portTICK_PERIOD_MS);
+                //         ESP_LOGI(TAG, "read data: %s", dtmp);
+                //         ESP_LOGI(TAG, "read pat : %s", pat);
+                //     }
+                //     break;
+                // Others
                 default:
                     ESP_LOGI(TAG, "uart event type: %d", event.type);
                     break;
